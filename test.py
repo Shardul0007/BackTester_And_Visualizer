@@ -1,17 +1,7 @@
-from datetime import date
+from data.csv_loader import CSVLoader
 
-from models.enums import *
-from models.instrument import Instrument
+df = CSVLoader.load("NIFTY-I.csv")
 
-instrument = Instrument(
-    underlying=Underlying.NIFTY,
-    instrument_type=InstrumentType.OPTION,
-    expiry=date(2022, 11, 3),
-    strike=24500,
-    option_type=OptionType.CALL,
-    symbol="NIFTY22110324500CE",
-)
-
-print(instrument)
-print(instrument.is_option)
-print(instrument.display_name)
+print(df.head())
+print(df.dtypes)
+print(len(df))
