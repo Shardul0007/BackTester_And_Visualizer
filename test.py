@@ -1,10 +1,10 @@
-from data.csv_loader import CSVLoader
-from data.time_series import TimeSeriesProcessor
-
-df = CSVLoader.load("NIFTY-I.csv")
-
-print(len(df))
-
-continuous = TimeSeriesProcessor.build(df)
-
-print(len(continuous))
+from utils.strike import nearest_strike
+print(nearest_strike(
+    18126,
+    [
+        18050,
+        18100,
+        18150,
+        18200,
+    ],
+) == 18150)

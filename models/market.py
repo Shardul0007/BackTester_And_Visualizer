@@ -34,3 +34,8 @@ class Market:
     def add_snapshot(self, snapshot: MarketSnapshot) -> None:
         """Appends a snapshot while preserving chronological order."""
         self.snapshots.append(snapshot)
+        if self.snapshots:
+
+            if snapshot.timestamp <= self.snapshots[-1].timestamp:
+
+                raise ValueError(...)
