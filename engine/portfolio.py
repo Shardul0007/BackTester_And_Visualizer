@@ -4,8 +4,6 @@ Portfolio component to track positions, trades, and PnL.
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 from models.enums import OrderAction, PositionStatus, Underlying, OptionType
 from models.instrument import Instrument
 from models.market_snapshot import MarketSnapshot
@@ -22,9 +20,9 @@ class Portfolio:
 
     def __init__(self, initial_cash: float = 0.0):
         self.cash: float = initial_cash
-        self.positions: Dict[Instrument, Position] = {}
-        self.trades: List[Trade] = []
-        self.last_prices: Dict[Instrument, float] = {}
+        self.positions: dict[Instrument, Position] = {}
+        self.trades: list[Trade] = []
+        self.last_prices: dict[Instrument, float] = {}
         
         # PnL metrics
         self.realized_pnl: float = 0.0
@@ -49,7 +47,7 @@ class Portfolio:
                 
         return PortfolioView(held_strike=held_strike)
 
-    def apply_orders(self, orders: List[Order]) -> None:
+    def apply_orders(self, orders: list[Order]) -> None:
         """
         Executes a list of orders, updating positions and cash.
         """

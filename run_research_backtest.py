@@ -26,32 +26,158 @@ from reporting.pdf_report import generate_pdf_report
 
 def main() -> None:
     args = _parse_args()
+
     data_path = Path(args.data)
-    output_dir = Path(args.output)
-    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_root = Path(args.output)
+    output_root.mkdir(parents=True, exist_ok=True)
+
+    # Single trading day
+    if (data_path / "futures").exists():
+        _run_single_day(
+            data_path,
+            output_root,
+            args,
+        )
+        return
+
+    # Multiple trading days
+    _run_multiple_days(
+        data_path,
+        output_root,
+        args,
+    )
+
+
+def _run_multiple_days(
+    root_directory: Path,
+    output_root: Path,
+    args: argparse.Namespace,
+) -> None:
+    """
+    Run the complete backtest pipeline for every trading day present
+    inside a parent directory.
+    """
+
+    trading_day_folders = sorted(
+        folder
+        for folder in root_directory.iterdir()
+        if (
+            folder.is_dir()
+            and (folder / "futures").exists()
+            and (folder / "options").exists()
+        )
+    )
+
+    if not trading_day_folders:
+        raise ValueError(
+            f"No trading day folders found inside {root_directory}"
+        )
+
+    print(f"\nFound {len(trading_day_folders)} trading days.\n")
+
+    for index, folder in enumerate(
+        trading_day_folders,
+        start=1,
+    ):
+
+        print(
+            f"[{index}/{len(trading_day_folders)}] "
+            f"Processing {folder.name}"
+        )
+
+        day_output = output_root / folder.name
+
+        day_output.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        _run_single_day(
+            folder,
+            day_output,
+            args,
+        )
+
+    print("\nFinished processing every trading day.")
+
+
+def _run_single_day(
+    data_path: Path,
+    output_dir: Path,
+    args: argparse.Namespace,
+) -> None:
+    """
+    Execute the complete research pipeline for one trading day.
+    """
 
     tracemalloc.start()
+
     total_start = time.perf_counter()
 
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    # -------------------------------------------------
+    # Load
+    # -------------------------------------------------
+
     load_start = time.perf_counter()
-    raw_market_data = TradingDayLoader(data_path).load()
-    loading_time = time.perf_counter() - load_start
+
+    raw_market_data = TradingDayLoader(
+        data_path
+    ).load()
+
+    loading_time = (
+        time.perf_counter()
+        - load_start
+    )
+
+    # -------------------------------------------------
+    # Build Market
+    # -------------------------------------------------
 
     build_start = time.perf_counter()
-    markets = build_markets(raw_market_data)
-    market_build_time = time.perf_counter() - build_start
 
-    portfolio = Portfolio(initial_cash=args.initial_cash)
-    backtester = Backtester(portfolio=portfolio, execution_engine=ExecutionEngine())
+    markets = build_markets(
+        raw_market_data
+    )
+
+    market_build_time = (
+        time.perf_counter()
+        - build_start
+    )
+
+    # -------------------------------------------------
+    # Backtest
+    # -------------------------------------------------
+
+    portfolio = Portfolio(
+        initial_cash=args.initial_cash
+    )
+
+    backtester = Backtester(
+        portfolio=portfolio,
+        execution_engine=ExecutionEngine(),
+    )
+
     for underlying in markets:
-        backtester.add_strategy(underlying, ATMStraddleStrategy())
+        backtester.add_strategy(
+            underlying,
+            ATMStraddleStrategy(),
+        )
 
     backtest_start = time.perf_counter()
     backtester.run(markets)
-    backtest_time = time.perf_counter() - backtest_start
 
-    current_memory, peak_memory = tracemalloc.get_traced_memory()
-    del current_memory
+    backtest_time = (
+        time.perf_counter()
+        - backtest_start
+    )
+
+    _, peak_memory = tracemalloc.get_traced_memory()
 
     configuration = {
         "initial_cash": args.initial_cash,
@@ -65,6 +191,7 @@ def main() -> None:
         "engine_version": args.engine_version,
         "dataset_version": data_path.name,
     }
+
     metadata = BacktestMetadata(
         run_timestamp=datetime.now().isoformat(timespec="seconds"),
         project_version=args.project_version,
@@ -76,6 +203,7 @@ def main() -> None:
         git_commit_hash=_git_commit_hash(),
         configuration=configuration,
     )
+
     system = SystemMetrics(
         csv_loading_time=loading_time,
         market_build_time=market_build_time,
@@ -84,7 +212,11 @@ def main() -> None:
     )
 
     analytics_start = time.perf_counter()
-    strategy_insights = build_atm_strategy_insights(markets)
+
+    strategy_insights = build_atm_strategy_insights(
+        markets
+    )
+
     result = build_analytics(
         portfolio=portfolio,
         markets=markets,
@@ -94,79 +226,132 @@ def main() -> None:
         system_metrics=system,
         strategy_insights=strategy_insights,
     )
-    result.system.analytics_time = time.perf_counter() - analytics_start
+
+    result.system.analytics_time = (
+        time.perf_counter()
+        - analytics_start
+    )
 
     dashboard_start = time.perf_counter()
-    dashboard_path = generate_dashboard(result, output_dir / "dashboard.html")
-    html_report_path = generate_html_report(result, output_dir / "report.html")
-    pdf_report_path = generate_pdf_report(result, output_dir / "report.pdf")
-    result.system.dashboard_generation_time = time.perf_counter() - dashboard_start
 
-    result.system.total_runtime = time.perf_counter() - total_start
-    export_paths = export_results(result, output_dir)
+    dashboard_path = generate_dashboard(
+        result,
+        output_dir / "dashboard.html",
+    )
 
-    # Regenerate HTML/PDF once so their system section includes final timings.
-    dashboard_path = generate_dashboard(result, output_dir / "dashboard.html")
-    html_report_path = generate_html_report(result, output_dir / "report.html")
-    pdf_report_path = generate_pdf_report(result, output_dir / "report.pdf")
+    html_report_path = generate_html_report(
+        result,
+        output_dir / "report.html",
+    )
+
+    pdf_report_path = generate_pdf_report(
+        result,
+        output_dir / "report.pdf",
+    )
+
+    result.system.dashboard_generation_time = (
+        time.perf_counter()
+        - dashboard_start
+    )
+
+    result.system.total_runtime = (
+        time.perf_counter()
+        - total_start
+    )
+
+    export_paths = export_results(
+        result,
+        output_dir,
+    )
+
+    # regenerate after final timings
+    generate_dashboard(
+        result,
+        output_dir / "dashboard.html",
+    )
+
+    generate_html_report(
+        result,
+        output_dir / "report.html",
+    )
+
+    generate_pdf_report(
+        result,
+        output_dir / "report.pdf",
+    )
 
     tracemalloc.stop()
 
-    print("Backtest analytics generated:")
-    print(f"  Dashboard: {dashboard_path}")
-    print(f"  HTML report: {html_report_path}")
-    print(f"  PDF report: {pdf_report_path}")
+    print(f"\n✓ {data_path.name}")
+
+    print(f"  Dashboard : {dashboard_path}")
+    print(f"  HTML      : {html_report_path}")
+    print(f"  PDF       : {pdf_report_path}")
+
     for name, path in export_paths.items():
-        print(f"  {name}: {path}")
+        print(f"  {name:<18}: {path}")
 
 
 def _parse_args() -> argparse.Namespace:
+
     parser = argparse.ArgumentParser(
         description="Run the backtest and generate analytics/dashboard artifacts.",
     )
+
     parser.add_argument(
         "--data",
         default="NSE_20221118",
-        help="Trading day directory containing Futures and Options folders.",
     )
+
     parser.add_argument(
         "--output",
         default="results",
-        help="Directory where result artifacts should be written.",
     )
+
     parser.add_argument(
         "--initial-cash",
         type=float,
         default=1_000_000.0,
-        help="Starting cash used by Portfolio and return calculations.",
     )
+
     parser.add_argument(
         "--project-version",
         default="1.0.0",
-        help="Project version written to reports and dashboards.",
     )
+
     parser.add_argument(
         "--engine-version",
         default="1.0.0",
-        help="Backtest engine version written to reports and dashboards.",
     )
+
     parser.add_argument(
         "--author",
         default=None,
-        help="Optional author name written to reports and dashboards.",
     )
+
     return parser.parse_args()
 
 
 def _git_commit_hash() -> str | None:
+
     try:
+
         completed = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
+            [
+                "git",
+                "rev-parse",
+                "--short",
+                "HEAD",
+            ],
             check=True,
             capture_output=True,
             text=True,
         )
-    except (OSError, subprocess.CalledProcessError):
+
+    except (
+        OSError,
+        subprocess.CalledProcessError,
+    ):
         return None
 
     return completed.stdout.strip() or None

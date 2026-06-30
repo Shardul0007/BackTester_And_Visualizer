@@ -1,6 +1,0 @@
-{
-  "data": "NSE_20221118",
-  "initial_cash": 1000000.0,
-  "output": "results",
-  "strategy": "ATMStraddleStrategy"
-}

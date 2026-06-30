@@ -1,37 +1,55 @@
-# BackTester And Visualizer
+# BackTester & Visualizer
 
-A modular options backtesting and research-reporting platform for intraday
-index option strategies. The project loads raw NSE CSV files, validates and
-normalizes market data, builds synchronized market snapshots, runs a strategy
-through a frozen execution and portfolio engine, then produces analytics,
-exports, an interactive dashboard, and professional reports.
+Modular options backtesting framework for intraday index option strategies — with analytics, an interactive dashboard, and HTML/PDF reports.
 
-The goal is to let a quantitative researcher answer three questions without
-reading source code:
+---
 
-- What happened?
-- Why did it happen?
-- Should I trust this strategy?
+## Preview
 
-## Assignment
+![Dashboard Overview](docs/screenshots/dashboard-overview.png)
+*KPI cards and run summary — strategy metadata, performance metrics, runtime*
 
-The assignment is to backtest an ATM straddle-style strategy on one trading day
-of futures and options data. The engine must handle sparse option quotes,
-incomplete option pairs, market synchronization, ATM strike rollover, portfolio
-accounting, trade history, analytics, dashboarding, and exportable reports.
+![Cumulative Performance](docs/screenshots/pnl-curve.png)
+*Realized PnL, portfolio value, and running maximum over the trading session*
+
+![Realized Drawdown](docs/screenshots/drawdown.png)
+*Intraday drawdown profile across the full trading session*
+
+![Data Quality & Runtime](docs/screenshots/data-quality-runtime.png)
+*Data coverage metrics and per-stage pipeline runtime breakdown*
+
+![Trade Table](docs/screenshots/trade-table.png)
+*Searchable, paginated trade log — 1,084 trades across NIFTY and BANKNIFTY*
+
+![ATM Strike & Premium Timeline](docs/screenshots/atm-timeline.png)
+*ATM strike tracking alongside futures price, and live CE / PE / combined premium over the session*
+
+![Daily PnL](docs/screenshots/daily-pnl.png)
+*Daily PnL bar and cumulative PnL line — per-day view for multi-day runs*
+
+![Trade Statistics](docs/screenshots/trade-statistics.png)
+*Trade PnL distribution, holding-time histogram, and holding time vs PnL scatter*
+
+---
 
 ## Features
 
-- [x] Modular architecture
-- [x] Strategy plug-in framework
-- [x] Portfolio and MTM accounting
-- [x] Analytics layer
-- [x] Interactive dashboard
+- [x] CSV market data loader with schema validation
+- [x] Sparse option quote handling (last known price, no fabrication)
+- [x] Incomplete option pair filtering (CE+PE required)
+- [x] Market synchronization — futures-driven timeline, options aligned
+- [x] Pluggable strategy framework (`Strategy` base class)
+- [x] ATM straddle strategy with intraday strike rollover
+- [x] Execution engine — signals → orders, deduplication guard
+- [x] Portfolio with MTM, realized PnL, unrealized PnL
+- [x] End-of-day forced liquidation with last-known-price fallback
+- [x] Analytics layer — performance, drawdown, equity curve, data quality
+- [x] Interactive Plotly dashboard (single HTML file, no server)
 - [x] HTML and PDF reports
-- [x] Data validation
-- [x] Data quality metrics
-- [x] Trade export
-- [x] Interactive visualizations
+- [x] CSV/JSON exports — trades, positions, summary, configuration
+- [x] Multi-day batch runner
+
+---
 
 ## Architecture
 
@@ -50,7 +68,7 @@ flowchart TD
     Portfolio[Portfolio]
     Analytics[Analytics]
     Dashboard[Dashboard]
-    Reports[Reports and Exports]
+    Reports[Reports & Exports]
 
     CSV --> Loader --> Validator --> TimeSeries --> DayLoader --> Builder
     Builder --> Market --> Strategy --> Signal --> Execution --> Portfolio
@@ -59,212 +77,116 @@ flowchart TD
     Validator --> Analytics
 ```
 
-### Runtime Sequence
+---
 
-```mermaid
-sequenceDiagram
-    participant Snapshot as MarketSnapshot
-    participant Strategy
-    participant Signal as TradingSignal
-    participant Execution as ExecutionEngine
-    participant Portfolio
-    participant Analytics
-    participant Dashboard
+## Project Structure
 
-    Snapshot->>Strategy: on_snapshot(snapshot, portfolio_view)
-    Strategy->>Signal: emit intent
-    Signal->>Execution: process signals
-    Execution->>Portfolio: apply executable orders
-    Portfolio->>Portfolio: mark to market
-    Portfolio->>Analytics: final state and trades
-    Snapshot->>Analytics: market and data quality context
-    Analytics->>Dashboard: metrics, curves, tables
+```
+analytics/          # Performance metrics, equity curves, data quality
+dashboard/          # Plotly dashboard generator
+data/               # CSV loading, validation, time-series, market building
+docs/               # Architecture notes, user guide, screenshots
+engine/             # Backtester, strategy, execution engine, portfolio
+models/             # Domain objects — instruments, orders, positions, trades
+reporting/          # HTML/PDF reports, CSV/JSON exports
+tests/              # Regression tests
+run_research_backtest.py
 ```
 
-## Pipeline
-
-One trading day flows through the system as follows:
-
-1. `CSVLoader` reads raw tick CSV files and normalizes one row per second.
-2. `DataValidator` checks schema, missing values, prices, timestamp order, and
-   duplicate timestamps.
-3. `TimeSeriesProcessor` builds dense futures series and sparse option series.
-4. `TradingDayLoader` loads futures and nearest-expiry options, retaining only
-   complete CE/PE option pairs.
-5. `MarketBuilder` synchronizes futures and options into tradable snapshots.
-6. `Strategy` reads each snapshot and emits `TradingSignal` intent.
-7. `ExecutionEngine` converts signals into executable orders.
-8. `Portfolio` owns positions, cash, closed trades, realized PnL, unrealized
-   PnL, and MTM.
-9. `Analytics` consumes final portfolio state, trades, markets, validation
-   results, configuration, and runtime metadata.
-10. `Dashboard`, `Reports`, and `Exports` present the run.
-
-## Folder Structure
-
-`data/` contains CSV loading, filename parsing, time-series processing,
-validation, quote indexing, trading-day loading, and market building.
-
-`engine/` contains the frozen backtesting orchestration, strategy contract,
-ATM straddle strategy, execution engine, and portfolio.
-
-`models/` contains immutable and structured domain objects such as instruments,
-orders, positions, trades, market snapshots, option quotes, futures quotes, raw
-market data, validation results, and enums.
-
-`analytics/` contains generic analytics models/calculations, ATM strategy
-insights, and comparison helpers.
-
-`dashboard/` contains the single-file Plotly dashboard generator.
-
-`reporting/` contains JSON/CSV exports plus HTML and PDF report generation.
-
-`docs/` contains user-facing documentation and architecture notes.
-
-`tests/` contains regression tests for the engine and analytics/reporting layer.
-
-`results/` contains generated outputs from the latest run.
+---
 
 ## Installation
 
-Use Python 3.11+.
+Requires **Python 3.11+**
 
-```powershell
-python -m pip install pandas pytest
+```bash
+pip install pandas pytest
 ```
 
-The dashboard uses Plotly from a CDN when `results/dashboard.html` is opened in
-a browser.
+The dashboard uses Plotly from CDN — no additional install needed.
+
+---
 
 ## Running
 
-Run the full research workflow:
+**Single trading day**
 
-```powershell
-python run_research_backtest.py --data NSE_20221118 --output results --initial-cash 1000000
+```bash
+python run_research_backtest.py --data NSE_20221118 --output results
 ```
 
-Optional metadata:
+**Full dataset (multi-day)**
 
-```powershell
-python run_research_backtest.py `
-  --data NSE_20221118 `
-  --output results `
-  --initial-cash 1000000 `
-  --project-version 1.0.0 `
-  --engine-version 1.0.0 `
-  --author "Your Name"
+```bash
+python run_research_backtest.py --data allData --output results
 ```
 
-Run tests:
+**Tests**
 
-```powershell
+```bash
 pytest -q
 ```
 
+---
+
 ## Dashboard
 
-Open:
+Open `results/<day>/dashboard.html` in any browser.
 
-```text
-results/dashboard.html
-```
+Includes:
 
-The dashboard contains:
-
-- Executive KPI cards
-- Cumulative performance chart
+- KPI cards — portfolio value, PnL, win rate, profit factor, drawdown, trades
+- Cumulative performance — realized PnL, portfolio value, running maximum
 - Realized drawdown chart
 - Daily PnL and cumulative PnL
-- Trade PnL histogram
-- Holding-time histogram
-- Holding-time vs PnL scatter plot
-- ATM strike and futures timeline
-- CE/PE/combined premium timeline
-- Data quality summary
-- Runtime breakdown
-- Searchable, sortable, paginated trade table
-- Daily summary, validation, and configuration tables
+- Trade PnL histogram and holding-time histogram
+- ATM strike and futures price timeline
+- CE / PE / combined premium timeline
+- Data quality summary and pipeline runtime breakdown
+- Searchable, paginated trade table with color-coded PnL
+- Daily summary, validation report, and configuration tables
 
-## Reports
+---
 
-Generated report files:
+## Reports & Exports
 
-- `results/report.html`
-- `results/report.pdf`
+Each run produces the following inside the output directory:
 
-The reports include project metadata, table of contents, executive summary,
-architecture summary, performance summary, trade statistics, risk metrics, data
-quality, engineering statistics, validation summary, and conclusions.
+| File | Contents |
+|------|----------|
+| `dashboard.html` | Full interactive Plotly dashboard |
+| `report.html` | Formatted HTML research report |
+| `report.pdf` | PDF version of the report |
+| `analytics.json` | Complete analytics payload |
+| `summary.json` | Executive summary and system metrics |
+| `trades.csv` | One row per closed trade |
+| `daily_summary.csv` | One row per trading day |
+| `positions.csv` | Open positions at end of run (empty on clean runs) |
+| `configuration.json` | Run configuration and metadata |
+| `validation_report.json` | Data validation warnings and errors |
 
-## Result Files
+---
 
-`summary.json` contains the executive summary, data-quality summary, and system
-metrics.
+## Supported Underlyings
 
-`analytics.json` contains the full analytics payload used by dashboards and
-reports.
+The data pipeline and market builder are generalized. The engine supports:
 
-`trades.csv` contains one row per closed trade.
+- **NIFTY**
+- **BANKNIFTY**
+- **FINNIFTY**
 
-`daily_summary.csv` contains one row per trading day.
+Underlyings absent from the dataset are safely ignored.
 
-`positions.csv` contains open positions at the end of the run.
+---
 
-`configuration.json` contains run configuration and metadata.
+## Assumptions
 
-`validation_report.json` contains validation warnings and errors.
+- Nearest expiry contracts only
+- Position size = 1 lot
+- Market order execution at quoted price
+- No brokerage or transaction costs
+- No slippage
+- No overnight positions — all positions are closed at end of day
+- When an option quote is missing at a given timestamp, the last known quote is used
 
-## Extending
-
-To add a new strategy:
-
-1. Create a class that inherits from `engine.strategy.Strategy`.
-2. Implement `on_snapshot(snapshot, portfolio_view)`.
-3. Return one or more `TradingSignal` objects.
-4. Register the strategy in a runner with `Backtester.add_strategy`.
-5. Add a strategy-specific analytics helper only if the strategy needs metrics
-   beyond the generic analytics layer.
-
-Strategies emit `TradingSignal` objects instead of orders so the execution
-engine remains the single place that translates intent into executable orders.
-This keeps strategy logic independent of execution rules and portfolio
-mutation.
-
-## Engineering Challenges
-
-Sparse option data: option contracts do not trade every second. The market
-builder resolves the last known option quote at or before the futures timestamp.
-
-Incomplete option pairs: a CE without a PE, or a PE without a CE, cannot be
-traded by a pair strategy. The loader filters incomplete strikes.
-
-Market synchronization: dense futures timestamps drive the simulation timeline,
-while sparse option quotes are aligned into snapshot option chains.
-
-ATM rollover: the ATM strike is computed from tradable strikes available in the
-snapshot. Strategy rollover is triggered when the held strike differs from the
-current ATM strike.
-
-Modular architecture: each layer owns one responsibility. Portfolio owns
-positions and PnL state. Analytics consumes outputs and never mutates the
-engine.
-
-## Screenshots
-
-Place screenshots in `docs/screenshots/` before final submission.
-
-Suggested captures:
-
-- Dashboard Overview: `docs/screenshots/dashboard-overview.png`
-- PnL Curve: `docs/screenshots/pnl-curve.png`
-- Trade Table: `docs/screenshots/trade-table.png`
-
-## Known Instrumentation Limits
-
-The frozen engine does not currently expose structured audit counters for
-signals generated, orders generated, or orders executed. Those analytics fields
-remain `null` unless supplied externally.
-
-Forward-filled quote counts are also `null` because the current data pipeline
-does not expose that count as structured metadata.
+---

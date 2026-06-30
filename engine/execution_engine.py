@@ -2,13 +2,13 @@
 Execution Engine for converting TradingSignals to Orders.
 """
 
-from typing import List
 
 from models.enums import OrderAction, OptionType
 from models.market_snapshot import MarketSnapshot
 from models.order import Order
 from models.trading_signal import TradingSignal, SignalType
 from engine.portfolio import Portfolio
+from models.instrument import Instrument
 
 
 class ExecutionEngine:
@@ -18,15 +18,15 @@ class ExecutionEngine:
     """
 
     def process(
-        self, 
-        signals: List[TradingSignal], 
-        snapshot: MarketSnapshot, 
+        self,
+        signals: list[TradingSignal],
+        snapshot: MarketSnapshot,
         portfolio: Portfolio
-    ) -> List[Order]:
+    ) -> list[Order]:
         """
         Convert signals into orders.
         """
-        orders: List[Order] = []
+        orders: list[Order] = []
         pending_instruments = set()
         
         for signal in signals:
@@ -43,9 +43,9 @@ class ExecutionEngine:
         snapshot: MarketSnapshot, 
         portfolio: Portfolio,
         pending_instruments: set
-    ) -> List[Order]:
+    ) -> list[Order]:
         
-        orders: List[Order] = []
+        orders: list[Order] = []
         
         if signal.signal_type == SignalType.BUY_PAIR:
             if signal.strike not in snapshot.option_chain:
@@ -81,8 +81,11 @@ class ExecutionEngine:
                 
         elif signal.signal_type == SignalType.EXIT_PAIR:
             if signal.strike not in snapshot.option_chain:
-                # Still try to exit if not in chain? We need a price to exit.
-                # Since we don't have a price in the current snapshot, skip for now.
+                # EXIT_PAIR requires a live price from the current snapshot.
+                # If the strike has dropped out of the chain there is no price
+                # available for a normal mid-day roll, so skip this signal.
+                # The end-of-day EXIT_ALL path handles missing strikes via the
+                # portfolio.last_prices fallback in _resolve_exit_price().
                 return []
                 
             pair = snapshot.option_chain[signal.strike]
@@ -114,22 +117,46 @@ class ExecutionEngine:
         elif signal.signal_type == SignalType.EXIT_ALL:
             for instrument, pos in portfolio.positions.items():
                 if instrument.underlying == signal.underlying:
-                    strike = instrument.strike
-                    if strike in snapshot.option_chain:
-                        pair = snapshot.option_chain[strike]
-                        if instrument.option_type == OptionType.CALL:
-                            price = pair.call.price
-                        else:
-                            price = pair.put.price
-                            
-                        orders.append(
-                            Order(
-                                timestamp=snapshot.timestamp,
-                                action=OrderAction.SELL,
-                                instrument=instrument,
-                                quantity=pos.quantity,
-                                price=price
-                            )
+                    price = self._resolve_exit_price(
+                        instrument, snapshot, portfolio
+                    )
+                    if price is None:
+                        continue
+                    orders.append(
+                        Order(
+                            timestamp=snapshot.timestamp,
+                            action=OrderAction.SELL,
+                            instrument=instrument,
+                            quantity=pos.quantity,
+                            price=price,
                         )
-                    
+                    )
+
         return orders
+
+    def _resolve_exit_price(
+        self,
+        instrument: Instrument,
+        snapshot: MarketSnapshot,
+        portfolio: Portfolio,
+    ) -> float | None:
+        """
+        Determine the exit price for an instrument.
+
+        Preference order:
+        1. Current snapshot option chain (most accurate).
+        2. Last known price recorded in the portfolio (fallback for strikes
+           that have dropped out of the chain on the final snapshot).
+
+        Returns ``None`` only when no price is available at all, which
+        indicates a data gap that cannot be recovered from.
+        """
+        strike = instrument.strike
+        if strike in snapshot.option_chain:
+            pair = snapshot.option_chain[strike]
+            if instrument.option_type == OptionType.CALL:
+                return pair.call.price
+            return pair.put.price
+
+        # Fallback: use the last price seen during mark-to-market updates.
+        return portfolio.last_prices.get(instrument)

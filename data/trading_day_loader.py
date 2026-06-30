@@ -68,7 +68,10 @@ class TradingDayLoader:
 
             file_path = futures_path / f"{underlying.value}-I.csv"
 
-            instrument = FilenameParser.parse(file_path)
+            try:
+                instrument = FilenameParser.parse(file_path)
+            except ValueError:
+                continue
 
             dataframe = CSVLoader.load(file_path)
 
@@ -114,7 +117,10 @@ class TradingDayLoader:
 
         for file_path in options_path.glob("*.csv"):
 
-            instrument = FilenameParser.parse(file_path)
+            try:
+                instrument = FilenameParser.parse(file_path)
+            except ValueError:
+                continue
 
             if instrument.instrument_type != InstrumentType.OPTION:
                 continue
@@ -215,8 +221,10 @@ class TradingDayLoader:
         options_path = self.day_path / "options"
 
         for file_path in options_path.glob("*.csv"):
-
-            instrument = FilenameParser.parse(file_path)
+            try:
+                instrument = FilenameParser.parse(file_path)
+            except ValueError:
+                continue
 
             if instrument.instrument_type != InstrumentType.OPTION:
                 continue
