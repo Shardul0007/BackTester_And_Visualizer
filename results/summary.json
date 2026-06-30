@@ -1,0 +1,50 @@
+{
+  "data_quality": {
+    "average_quotes_per_strike": 5894.7844827586205,
+    "data_coverage_percent": 95.20293250124556,
+    "files_failed": 0,
+    "files_loaded": 462,
+    "forward_filled_quotes": null,
+    "incomplete_option_pairs_filtered": 112,
+    "missing_data_percent": 4.797067498754444,
+    "missing_quotes_encountered": 164067,
+    "tradable_strikes": 174,
+    "trading_days_loaded": 1,
+    "validation_errors": 0,
+    "validation_warnings": 0
+  },
+  "executive_summary": {
+    "final_portfolio_value": 999905.1,
+    "maximum_drawdown": 121.89999999990687,
+    "number_of_trades": 360,
+    "profit_factor": 0.8242104288228208,
+    "return_percent": -0.009490000000000018,
+    "total_pnl": -94.90000000000018,
+    "total_trading_days": 1,
+    "win_rate": 47.77777777777778
+  },
+  "metadata": {
+    "configuration": {
+      "data": "NSE_20221118",
+      "initial_cash": 1000000.0,
+      "output": "results",
+      "strategy": "ATMStraddleStrategy"
+    },
+    "dataset": "NSE_20221118",
+    "git_commit_hash": "06e7849",
+    "notes": [],
+    "run_timestamp": "2026-06-30T16:05:45",
+    "strategy_name": "ATMStraddleStrategy"
+  },
+  "system": {
+    "analytics_time": 1.3979803000111133,
+    "backtest_time": 1.783847900107503,
+    "csv_loading_time": 44.64866369985975,
+    "dashboard_generation_time": 3.229320799931884,
+    "market_build_time": 123.58748200000264,
+    "peak_memory_usage_mb": 1190.9171180725098,
+    "snapshots_per_second": 25227.487162603924,
+    "total_runtime": 174.8627784999553,
+    "trades_per_second": 201.8109279262569
+  }
+}

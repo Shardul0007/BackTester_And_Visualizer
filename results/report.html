@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backtest Analytics Report</title>
+  <style>
+    body {
+      margin: 0;
+      color: #171a1f;
+      background: #ffffff;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+    main { max-width: 980px; margin: 0 auto; padding: 34px 40px; }
+    h1 { margin: 0 0 4px; font-size: 26px; }
+    h2 { margin: 28px 0 10px; font-size: 16px; border-bottom: 1px solid #d8dde6; padding-bottom: 6px; }
+    .meta { color: #667085; margin-bottom: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .metric { border: 1px solid #d8dde6; border-radius: 8px; padding: 12px; }
+    .label { color: #667085; font-size: 11px; margin-bottom: 4px; }
+    .value { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { padding: 7px 8px; border-bottom: 1px solid #e6e9ef; text-align: left; }
+    th { color: #667085; font-weight: 650; }
+    @media print { main { padding: 18px; } .metric { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Backtest Analytics Report</h1>
+    <div class="meta">ATMStraddleStrategy | NSE_20221118 | 2026-06-30T16:05:45 | git 06e7849</div>
+
+    <h2>Overview</h2>
+    <div class="grid">
+      <div class="metric"><div class="label">Final Portfolio Value</div><div class="value">999,905.10</div></div>
+      <div class="metric"><div class="label">Total PnL</div><div class="value">-94.90</div></div>
+      <div class="metric"><div class="label">Return</div><div class="value">-0.01%</div></div>
+      <div class="metric"><div class="label">Win Rate</div><div class="value">47.78%</div></div>
+      <div class="metric"><div class="label">Profit Factor</div><div class="value">0.82</div></div>
+      <div class="metric"><div class="label">Maximum Drawdown</div><div class="value">121.90</div></div>
+    </div>
+
+    <h2>Configuration</h2>
+    <table><tbody><tr><th>initial_cash</th><td>1,000,000.00</td></tr><tr><th>data</th><td>NSE_20221118</td></tr><tr><th>output</th><td>results</td></tr><tr><th>strategy</th><td>ATMStraddleStrategy</td></tr></tbody></table>
+
+    <h2>Architecture Summary</h2>
+    <p>CSVLoader, Validator, TimeSeriesProcessor, TradingDayLoader, MarketBuilder, Market, Strategy, ExecutionEngine, Portfolio, Analytics, Dashboard.</p>
+
+    <h2>Performance Metrics</h2>
+    <table><tbody><tr><th>final_portfolio_value</th><td>999,905.10</td></tr><tr><th>total_pnl</th><td>-94.90</td></tr><tr><th>realized_pnl</th><td>-94.90</td></tr><tr><th>unrealized_pnl</th><td>0.00</td></tr><tr><th>mtm</th><td>-94.90</td></tr><tr><th>return_percent</th><td>-0.01</td></tr><tr><th>number_of_trades</th><td>360</td></tr><tr><th>winning_trades</th><td>172</td></tr><tr><th>losing_trades</th><td>165</td></tr><tr><th>win_rate</th><td>47.78</td></tr><tr><th>average_profit</th><td>2.59</td></tr><tr><th>average_loss</th><td>-3.27</td></tr><tr><th>largest_winner</th><td>69.80</td></tr><tr><th>largest_loser</th><td>-54.65</td></tr><tr><th>average_trade_pnl</th><td>-0.26</td></tr><tr><th>median_trade_pnl</th><td>0.00</td></tr><tr><th>average_holding_time_seconds</th><td>250.00</td></tr><tr><th>maximum_holding_time_seconds</th><td>8,972.00</td></tr><tr><th>minimum_holding_time_seconds</th><td>1.00</td></tr><tr><th>profit_factor</th><td>0.82</td></tr><tr><th>expectancy</th><td>-0.26</td></tr><tr><th>maximum_drawdown</th><td>121.90</td></tr><tr><th>maximum_drawdown_percent</th><td>0.01</td></tr><tr><th>maximum_drawdown_duration_seconds</th><td>14,880.00</td></tr></tbody></table>
+
+    <h2>Trade Statistics</h2>
+    <table><tbody><tr><th>number_of_trades</th><td>360</td></tr><tr><th>winning_trades</th><td>172</td></tr><tr><th>losing_trades</th><td>165</td></tr><tr><th>average_trade_pnl</th><td>-0.26</td></tr><tr><th>median_trade_pnl</th><td>0.00</td></tr><tr><th>average_holding_time_seconds</th><td>250.00</td></tr></tbody></table>
+
+    <h2>Data Quality</h2>
+    <table><tbody><tr><th>trading_days_loaded</th><td>1</td></tr><tr><th>files_loaded</th><td>462</td></tr><tr><th>files_failed</th><td>0</td></tr><tr><th>validation_warnings</th><td>0</td></tr><tr><th>validation_errors</th><td>0</td></tr><tr><th>incomplete_option_pairs_filtered</th><td>112</td></tr><tr><th>tradable_strikes</th><td>174</td></tr><tr><th>missing_quotes_encountered</th><td>164067</td></tr><tr><th>forward_filled_quotes</th><td>N/A</td></tr><tr><th>data_coverage_percent</th><td>95.20</td></tr><tr><th>missing_data_percent</th><td>4.80</td></tr><tr><th>average_quotes_per_strike</th><td>5,894.78</td></tr></tbody></table>
+
+    <h2>Validation Summary</h2>
+    <p>No validation issues were recorded.</p>
+
+    <h2>Engineering Statistics</h2>
+    <table><tbody><tr><th>csv_loading_time</th><td>44.65</td></tr><tr><th>market_build_time</th><td>123.59</td></tr><tr><th>backtest_time</th><td>1.78</td></tr><tr><th>analytics_time</th><td>1.40</td></tr><tr><th>dashboard_generation_time</th><td>3.23</td></tr><tr><th>peak_memory_usage_mb</th><td>1,190.92</td></tr><tr><th>total_runtime</th><td>174.86</td></tr><tr><th>snapshots_per_second</th><td>25,227.49</td></tr><tr><th>trades_per_second</th><td>201.81</td></tr></tbody></table>
+
+    <h2>Conclusions</h2>
+    <p>The run did not produce positive PnL; inspect trade distribution and drawdown before further tuning.</p>
+  </main>
+</body>
+</html>
