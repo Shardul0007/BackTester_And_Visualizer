@@ -24,22 +24,22 @@ class Market:
     snapshots: list[MarketSnapshot] = field(default_factory=list)
 
     def __iter__(self) -> Iterator[MarketSnapshot]:
-        """Allows iteration over market snapshots."""
         return iter(self.snapshots)
 
     def __len__(self) -> int:
-        """Returns the number of snapshots."""
         return len(self.snapshots)
 
-def add_snapshot(self, snapshot: MarketSnapshot) -> None:
-    """Append a snapshot while preserving chronological order."""
+    def add_snapshot(self, snapshot: MarketSnapshot) -> None:
+        """
+        Append a snapshot while preserving chronological order.
+        """
 
-    if self.snapshots:
-        latest_snapshot = self.snapshots[-1]
+        if self.snapshots:
+            latest_snapshot = self.snapshots[-1]
 
-        if snapshot.timestamp <= latest_snapshot.timestamp:
-            raise ValueError(
-                "Market snapshots must be added in chronological order."
-            )
+            if snapshot.timestamp <= latest_snapshot.timestamp:
+                raise ValueError(
+                    "Market snapshots must be added in chronological order."
+                )
 
-    self.snapshots.append(snapshot)
+        self.snapshots.append(snapshot)

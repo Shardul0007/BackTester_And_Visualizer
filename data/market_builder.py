@@ -11,6 +11,11 @@ from models.enums import Underlying
 from models.market import Market
 from models.option_series import OptionSeries
 from models.raw_market_data import RawMarketData
+from data.quote_index import QuoteIndex
+from models.future_quote import FutureQuote
+from models.option_pair_quote import OptionPairQuote
+from models.option_quote import OptionQuote
+from models.quote_tick import QuoteTick
 
 
 def build_markets(
@@ -112,3 +117,83 @@ def _build_option_indices(
         )
 
     return indices
+def _build_future_quote(
+    tick: QuoteTick,
+    future_series,
+) -> FutureQuote:
+    """
+    Build a FutureQuote from a quote tick.
+    """
+
+    return FutureQuote(
+        instrument=future_series.instrument,
+        price=tick.price,
+        volume=tick.volume,
+        open_interest=tick.open_interest,
+    )
+
+def _build_option_quote(
+    tick: QuoteTick,
+    instrument,
+) -> OptionQuote:
+    """
+    Build an OptionQuote from a quote tick.
+    """
+
+    return OptionQuote(
+        instrument=instrument,
+        price=tick.price,
+        volume=tick.volume,
+        open_interest=tick.open_interest,
+    )
+
+def _build_option_chain(
+    timestamp: datetime,
+    option_series: dict[int, OptionSeries],
+    option_indices: dict[int, tuple[QuoteIndex, QuoteIndex]],
+) -> dict[int, OptionPairQuote]:
+    """
+    Build the complete option chain for one timestamp.
+    """
+
+    option_chain = {}
+
+    for strike, series in option_series.items():
+
+        call_index, put_index = option_indices[strike]
+
+        call_tick = call_index.get(timestamp)
+
+        if call_tick is None:
+            raise ValueError(
+                f"Missing call quote for "
+                f"{series.call_instrument.symbol} "
+                f"at {timestamp}"
+            )
+
+        put_tick = put_index.get(timestamp)
+
+        if put_tick is None:
+            raise ValueError(
+                f"Missing put quote for "
+                f"{series.put_instrument.symbol} "
+                f"at {timestamp}"
+            )
+
+        call_quote = _build_option_quote(
+            call_tick,
+            series.call_instrument,
+        )
+
+        put_quote = _build_option_quote(
+            put_tick,
+            series.put_instrument,
+        )
+
+        option_chain[strike] = OptionPairQuote(
+            call=call_quote,
+            put=put_quote,
+        )
+
+    return option_chain
+
