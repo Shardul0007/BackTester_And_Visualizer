@@ -16,7 +16,8 @@ from models.future_quote import FutureQuote
 from models.option_pair_quote import OptionPairQuote
 from models.option_quote import OptionQuote
 from models.quote_tick import QuoteTick
-
+from utils.strike import nearest_strike
+from models.market_snapshot import MarketSnapshot
 
 def build_markets(
     raw_market_data: RawMarketData,
@@ -44,9 +45,6 @@ def _build_market(
 ) -> Market:
     """
     Build the complete market for one underlying.
-
-    This function prepares all lookup structures required by the
-    snapshot generation loop.
     """
 
     future_series = raw_market_data.futures[underlying]
@@ -55,12 +53,14 @@ def _build_market(
         future_series.dataframe
     )
 
+    option_series = raw_market_data.options[underlying]
+
     option_indices = _build_option_indices(
-        raw_market_data.options[underlying]
+        option_series
     )
 
     available_strikes = sorted(
-        option_indices.keys()
+        option_series.keys()
     )
 
     market = Market(
@@ -68,10 +68,34 @@ def _build_market(
         underlying=underlying,
     )
 
-    #
-    # Snapshot generation will happen here
-    # in the next commit.
-    #
+    for timestamp in sorted(future_index.keys()):
+
+        future_tick = future_index[timestamp]
+
+        future_quote = _build_future_quote(
+            future_tick,
+            future_series,
+        )
+
+        atm_strike = nearest_strike(
+            future_quote.price,
+            available_strikes,
+        )
+
+        option_chain = _build_option_chain(
+            timestamp,
+            option_series,
+            option_indices,
+        )
+
+        snapshot = MarketSnapshot(
+            timestamp=timestamp,
+            future=future_quote,
+            atm_strike=atm_strike,
+            option_chain=option_chain,
+        )
+
+        market.add_snapshot(snapshot)
 
     return market
 
@@ -101,7 +125,9 @@ def _build_option_indices(
 
     indices = {}
 
-    for strike, series in option_series.items():
+    for strike in sorted(option_series):
+
+        series = option_series[strike]
 
         call_index = build_quote_index(
             series.call_dataframe
@@ -158,7 +184,9 @@ def _build_option_chain(
 
     option_chain = {}
 
-    for strike, series in option_series.items():
+    for strike in sorted(option_series):
+
+        series = option_series[strike]
 
         call_index, put_index = option_indices[strike]
 
@@ -196,4 +224,5 @@ def _build_option_chain(
         )
 
     return option_chain
+
 
