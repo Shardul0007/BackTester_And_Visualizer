@@ -27,9 +27,13 @@ class ExecutionEngine:
         Convert signals into orders.
         """
         orders: List[Order] = []
+        pending_instruments = set()
         
         for signal in signals:
-            orders.extend(self._process_signal(signal, snapshot, portfolio))
+            new_orders = self._process_signal(signal, snapshot, portfolio, pending_instruments)
+            for order in new_orders:
+                pending_instruments.add(order.instrument)
+            orders.extend(new_orders)
             
         return orders
 
@@ -37,7 +41,8 @@ class ExecutionEngine:
         self, 
         signal: TradingSignal, 
         snapshot: MarketSnapshot, 
-        portfolio: Portfolio
+        portfolio: Portfolio,
+        pending_instruments: set
     ) -> List[Order]:
         
         orders: List[Order] = []
@@ -48,8 +53,8 @@ class ExecutionEngine:
                 
             pair = snapshot.option_chain[signal.strike]
             
-            ce_held = pair.call.instrument in portfolio.positions
-            pe_held = pair.put.instrument in portfolio.positions
+            ce_held = (pair.call.instrument in portfolio.positions) or (pair.call.instrument in pending_instruments)
+            pe_held = (pair.put.instrument in portfolio.positions) or (pair.put.instrument in pending_instruments)
             
             quantity = 1 
             

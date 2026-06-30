@@ -24,6 +24,7 @@ class Portfolio:
         self.cash: float = initial_cash
         self.positions: Dict[Instrument, Position] = {}
         self.trades: List[Trade] = []
+        self.last_prices: Dict[Instrument, float] = {}
         
         # PnL metrics
         self.realized_pnl: float = 0.0
@@ -105,18 +106,22 @@ class Portfolio:
         """
         Updates unrealized PnL using the current market snapshot.
         """
-        self.unrealized_pnl = 0.0
-        
+        # 1. Update latest known prices for the underlying in this snapshot
         for instrument, position in self.positions.items():
             if instrument.underlying == snapshot.future.instrument.underlying:
                 strike = instrument.strike
                 if strike in snapshot.option_chain:
                     pair = snapshot.option_chain[strike]
                     if instrument.option_type == OptionType.CALL:
-                        current_price = pair.call.price
+                        self.last_prices[instrument] = pair.call.price
                     else:
-                        current_price = pair.put.price
-                    
-                    self.unrealized_pnl += (current_price - position.entry_price) * position.quantity
-                    
+                        self.last_prices[instrument] = pair.put.price
+                        
+        # 2. Compute total unrealized PnL across ALL underlyings
+        self.unrealized_pnl = 0.0
+        for instrument, position in self.positions.items():
+            if instrument in self.last_prices:
+                current_price = self.last_prices[instrument]
+                self.unrealized_pnl += (current_price - position.entry_price) * position.quantity
+                
         self.mark_to_market_pnl = self.realized_pnl + self.unrealized_pnl
