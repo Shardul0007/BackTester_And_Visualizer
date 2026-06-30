@@ -31,11 +31,15 @@ class Market:
         """Returns the number of snapshots."""
         return len(self.snapshots)
 
-    def add_snapshot(self, snapshot: MarketSnapshot) -> None:
-        """Appends a snapshot while preserving chronological order."""
-        self.snapshots.append(snapshot)
-        if self.snapshots:
+def add_snapshot(self, snapshot: MarketSnapshot) -> None:
+    """Append a snapshot while preserving chronological order."""
 
-            if snapshot.timestamp <= self.snapshots[-1].timestamp:
+    if self.snapshots:
+        latest_snapshot = self.snapshots[-1]
 
-                raise ValueError(...)
+        if snapshot.timestamp <= latest_snapshot.timestamp:
+            raise ValueError(
+                "Market snapshots must be added in chronological order."
+            )
+
+    self.snapshots.append(snapshot)

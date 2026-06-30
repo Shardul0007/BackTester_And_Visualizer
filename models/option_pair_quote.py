@@ -15,8 +15,6 @@ class OptionPairQuote:
     Holds the call and put quote for a strike.
     """
 
-    strike: int
-
     call: OptionQuote
 
     put: OptionQuote
